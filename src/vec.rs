@@ -7,6 +7,10 @@ pub struct Vec3 {
 }
 
 impl Vec3 {
+    pub fn near_zero(&self) -> bool {
+        let s = 1e-8;
+        self.vec[0].abs() < s && self.vec[1].abs() < s && self.vec[2].abs() < s
+    }
     pub fn new(x: f64, y: f64, z: f64) -> Vec3 {
         Vec3 { vec: [x, y, z] }
     }
@@ -41,7 +45,7 @@ impl Vec3 {
             + self.vec[2] * other.vec[2]
     }
 
-    pub fn random_range(min: f64, max: f64, rng: &mut impl Rng) -> Vec3 {
+    pub fn random_range(min: f64, max: f64, rng: &mut (impl Rng + ?Sized)) -> Vec3 {
         Vec3::new(rng.random_range(min..max), rng.random_range(min..max), rng.random_range(min..max))
     }
 
@@ -49,7 +53,7 @@ impl Vec3 {
         Vec3::new(rng.random(), rng.random(), rng.random())
     }
 
-    pub fn random_unit_vector(rng: &mut impl Rng) -> Vec3 {
+    pub fn random_unit_vector(rng: &mut (impl Rng + ?Sized)) -> Vec3 {
         loop {
             let p = Vec3::random_range(-1.0, 1.0, rng);
             let lensq = p.length_squared();
@@ -65,6 +69,10 @@ impl Vec3 {
         if on_unit_sphere.dot_product(normal) > 0.0 {
             on_unit_sphere
         } else { -on_unit_sphere }
+    }
+
+    pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
+        v - ((n * v.dot_product(&n)) * 2.0)
     }
 }
 

@@ -18,14 +18,18 @@ mod sphere;
 mod utils;
 mod interval;
 mod camera;
+mod material;
+
 use rand::Rng;
+use crate::material::{Lambertian, Material, Metal};
 
 pub fn ray_color(r: &Ray, world: &HittableList, rng: &mut impl Rng, depth: u32) -> Color {
-    if(depth <= 0) { return Color::new(0.0, 0.0, 0.0) }
-    if let Some(rec) = world.hit(r, Interval::new(0.0, INFINITY)) {
-        let direction = Vec3::random_on_hemisphere(&rec.normal, rng);
-        // return (rec.normal + Color::new(1.0, 1.0, 1.0)) * 0.5;
-        return ray_color(&Ray::new(rec.p, direction), world, rng, depth - 1) * 0.5;
+    if depth <= 0 { return Color::new(0.0, 0.0, 0.0) }
+    if let Some(rec) = world.hit(r, Interval::new(0.001, INFINITY)) {
+        if let Some((attenuation, scattered)) = rec.material.scatter(r, &rec, rng) {
+            return attenuation * ray_color(&scattered, world, rng, depth - 1);
+        }
+        return Color::new(0.0, 0.0, 0.0);
     }
 
     let unit_direction = r.direction().unit_vector();
@@ -40,8 +44,42 @@ fn main() {
     
     let cam = Camera::new(aspect_ratio, image_height, 100);
     let mut world: HittableList = HittableList::new();
-    world.add(Arc::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0)));
-    world.add(Arc::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5)));
+    let material_ground: Arc<dyn Material> =
+        Arc::new(Lambertian { albedo: Color::new(0.8, 0.8, 0.0) });
+
+    let material_center: Arc<dyn Material> =
+        Arc::new(Lambertian { albedo: Color::new(0.1, 0.2, 0.5) });
+
+    let material_left: Arc<dyn Material> =
+        Arc::new(Metal { albedo: Color::new(0.8, 0.8, 0.8), fuzz: 0.3 });
+
+    let material_right: Arc<dyn Material> =
+        Arc::new(Metal { albedo: Color::new(0.8, 0.6, 0.2), fuzz: 0.1 });
+
+    world.add(Arc::new(Sphere::new(
+        Point3::new(0.0, -100.5, -1.0),
+        100.0,
+        material_ground.clone(),
+    )));
+
+    world.add(Arc::new(Sphere::new(
+        Point3::new(0.0, 0.0, -1.2),
+        0.5,
+        material_center.clone(),
+    )));
+
+    world.add(Arc::new(Sphere::new(
+        Point3::new(-1.0, 0.0, -1.0),
+        0.5,
+        material_left.clone(),
+    )));
+
+    world.add(Arc::new(Sphere::new(
+        Point3::new(1.0, 0.0, -1.0),
+        0.5,
+        material_right.clone(),
+    )));
+
     let start = Instant::now();
     cam.render(&world);
     let duration = start.elapsed();
