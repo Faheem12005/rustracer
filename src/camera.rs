@@ -15,6 +15,7 @@ pub struct Camera {
     pixel_delta_v: Vec3,
     samples_per_pixel: u32,
     pixel_sample_scale: f64,
+    max_depth: u32,
 }
 
 impl Camera {
@@ -29,6 +30,7 @@ impl Camera {
             pixel_delta_u: Vec3::new(0.0, 0.0, 0.0),
             pixel_delta_v: Vec3::new(0.0, 0.0, 0.0),
             pixel_sample_scale: 1.0,
+            max_depth: 50
         };
 
         cam.initialize();
@@ -42,7 +44,7 @@ impl Camera {
                 let mut color = Color::new(0.0, 0.0, 0.0);
                 for _s in 0..self.samples_per_pixel {
                     let ray = self.get_ray(i, j, &mut rng);
-                    color += ray_color(&ray, world);
+                    color += ray_color(&ray, world, &mut rng, self.max_depth);
                 }
                 write_color(&(color * self.pixel_sample_scale));
             }
