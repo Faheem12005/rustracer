@@ -1,5 +1,5 @@
 use std::ops::{Add, Sub, Mul, Div, Neg, Index, IndexMut, AddAssign};
-use rand::{Rng, RngExt};
+use rand::{random_range, Rng, RngExt};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vec3 {
@@ -73,6 +73,27 @@ impl Vec3 {
 
     pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
         v - ((n * v.dot_product(&n)) * 2.0)
+    }
+
+    pub fn refract(unit_vector: Vec3, n: Vec3, etai_over_etat: f64) -> Vec3 {
+        let cos_theta = -unit_vector.dot_product(&n).min(1.0);
+        let r_out_perp = (unit_vector + n * cos_theta) * etai_over_etat;
+        let r_out_parallel: Vec3 = n * -(1.0 - r_out_perp.length_squared()).sqrt();
+        r_out_perp + r_out_parallel
+    }
+
+    pub fn random_in_unit_disk(rng: &mut impl Rng) -> Vec3 {
+        loop {
+            let p = Vec3::new(
+                rng.random_range(-1.0..1.0),
+                rng.random_range(-1.0..1.0),
+                0.0,
+            );
+
+            if p.length_squared() < 1.0 {
+                return p;
+            }
+        }
     }
 }
 

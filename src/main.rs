@@ -21,7 +21,7 @@ mod camera;
 mod material;
 
 use rand::Rng;
-use crate::material::{Lambertian, Material, Metal};
+use crate::material::{Dielectric, Lambertian, Material, Metal};
 
 pub fn ray_color(r: &Ray, world: &HittableList, rng: &mut impl Rng, depth: u32) -> Color {
     if depth <= 0 { return Color::new(0.0, 0.0, 0.0) }
@@ -42,7 +42,12 @@ fn main() {
     let aspect_ratio =  16.0 / 9.0;
     let image_height: u32 = 400;
     
-    let cam = Camera::new(aspect_ratio, image_height, 100);
+    let cam = Camera::new(aspect_ratio, image_height, 750,
+                          Point3::new(-2.0, 2.0, 1.0),
+                          Point3::new(0.0, 0.0, -1.0),
+                          Vec3::new(0.0, 1.0, 0.0),
+                          20.0
+    );
     let mut world: HittableList = HittableList::new();
     let material_ground: Arc<dyn Material> =
         Arc::new(Lambertian { albedo: Color::new(0.8, 0.8, 0.0) });
@@ -51,8 +56,10 @@ fn main() {
         Arc::new(Lambertian { albedo: Color::new(0.1, 0.2, 0.5) });
 
     let material_left: Arc<dyn Material> =
-        Arc::new(Metal { albedo: Color::new(0.8, 0.8, 0.8), fuzz: 0.3 });
+        Arc::new(Dielectric { refractive_index: 1.5 });
 
+    let material_bubble: Arc<dyn Material> =
+        Arc::new( Dielectric { refractive_index: 1.0 / 1.5 });
     let material_right: Arc<dyn Material> =
         Arc::new(Metal { albedo: Color::new(0.8, 0.6, 0.2), fuzz: 0.1 });
 
@@ -66,6 +73,12 @@ fn main() {
         Point3::new(0.0, 0.0, -1.2),
         0.5,
         material_center.clone(),
+    )));
+
+    world.add(Arc::new(Sphere::new(
+        Point3::new(-1.0, 0.0, -1.0),
+        0.4,
+        material_bubble.clone()
     )));
 
     world.add(Arc::new(Sphere::new(
