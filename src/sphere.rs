@@ -3,6 +3,7 @@ use crate::hittable::{HitRecord, Hittable};
 use crate::interval::Interval;
 use crate::ray::*;
 use crate::material::*;
+use crate::profiler::RenderStats;
 
 pub struct Sphere {
     center: Point3,
@@ -17,7 +18,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, ray: &Ray, interval: Interval) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, interval: Interval, _profiler: &mut RenderStats) -> Option<HitRecord> {
         let oc = self.center - ray.origin();
         let a = ray.direction().length_squared();
         let h = ray.direction().dot_product(&oc);

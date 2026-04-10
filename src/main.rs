@@ -1,13 +1,11 @@
-
-use crate::vec::*;
-use crate::ray::*;
-use crate::color::*;
-use crate::hittable::{Hittable, HittableList};
-use crate::sphere::Sphere;
-use std::sync::Arc;
 use crate::camera::Camera;
-use crate::interval::Interval;
-use crate::utils::INFINITY;
+use crate::color::*;
+use crate::hittable::{HittableList};
+use crate::ray::*;
+use crate::sphere::Sphere;
+use crate::vec::*;
+use std::sync::atomic::AtomicUsize;
+use std::sync::Arc;
 use std::time::Instant;
 
 mod vec;
@@ -19,25 +17,11 @@ mod utils;
 mod interval;
 mod camera;
 mod material;
+mod profiler;
 
-use rand::Rng;
 use crate::material::{Dielectric, Lambertian, Material, Metal};
+use crate::profiler::RenderStats;
 
-pub fn ray_color(r: &Ray, world: &HittableList, rng: &mut impl Rng, depth: u32) -> Color {
-    if depth <= 0 { return Color::new(0.0, 0.0, 0.0) }
-    if let Some(rec) = world.hit(r, Interval::new(0.001, INFINITY)) {
-        if let Some((attenuation, scattered)) = rec.material.scatter(r, &rec, rng) {
-            return attenuation * ray_color(&scattered, world, rng, depth - 1);
-        }
-        return Color::new(0.0, 0.0, 0.0);
-    }
-
-    let unit_direction = r.direction().unit_vector();
-    let a = 0.5 * (unit_direction[1] + 1.0);
-
-    (Vec3::new(1.0, 1.0, 1.0) * (1.0 - a))
-        + (Vec3::new(0.5, 0.7, 1.0) * a)
-}
 fn main() {
     let aspect_ratio =  16.0 / 9.0;
     let image_height: u32 = 400;
@@ -46,7 +30,9 @@ fn main() {
                           Point3::new(-2.0, 2.0, 1.0),
                           Point3::new(0.0, 0.0, -1.0),
                           Vec3::new(0.0, 1.0, 0.0),
-                          20.0
+                          20.0,
+                          10.0,
+                          3.4
     );
     let mut world: HittableList = HittableList::new();
     let material_ground: Arc<dyn Material> =
@@ -94,7 +80,16 @@ fn main() {
     )));
 
     let start = Instant::now();
-    cam.render(&world);
+
+    let mut profiler = RenderStats {
+        rays_cast: AtomicUsize::new(0),
+        intersection_tests: AtomicUsize::new(0),
+        bounces: AtomicUsize::new(0),
+        rays_missed: AtomicUsize::new(0),
+
+    };
+    cam.render(&world, &mut profiler);
     let duration = start.elapsed();
     eprintln!("Runtime: {}", duration.as_millis());
+    profiler.report();
 }

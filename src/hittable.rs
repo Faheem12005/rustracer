@@ -3,6 +3,7 @@ use crate::vec::*;
 use std::sync::Arc;
 use crate::interval::Interval;
 use crate::material::Material;
+use crate::profiler::RenderStats;
 
 pub struct HitRecord {
     pub p: Point3,
@@ -35,7 +36,8 @@ pub trait Hittable {
     fn hit(
         &self,
         r: &Ray,
-        interval: Interval
+        interval: Interval,
+        profiler: &mut RenderStats,
     ) -> Option<HitRecord>;
 }
 
@@ -56,11 +58,12 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, r: &Ray, interval: Interval) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, interval: Interval, profiler: &mut RenderStats) -> Option<HitRecord> {
         let mut closest_so_far = interval.max;
         let mut result: Option<HitRecord> = None;
         for object in &self.objects {
-            if let Some(rec) = object.hit(r, Interval::new(interval.min, closest_so_far)) {
+            profiler.inc_intersection_tests();
+            if let Some(rec) = object.hit(r, Interval::new(interval.min, closest_so_far), profiler) {
                 closest_so_far = rec.t;
                 result = Some(rec);
             }
